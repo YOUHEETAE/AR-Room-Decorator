@@ -1,16 +1,17 @@
+// main.dart
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
-import 'package:ar_flutter_plugin_2/datatypes/node_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_location_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_object_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_session_manager.dart';
 import 'package:ar_flutter_plugin_2/models/ar_anchor.dart';
 import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
-import 'package:ar_flutter_plugin_2/models/ar_node.dart';
 import 'package:ar_flutter_plugin_2/widgets/ar_view.dart';
 import 'package:flutter/material.dart';
-import 'package:vector_math/vector_math_64.dart' as vm;
+
+import 'node_manager.dart';
+import 'ar_model_factory.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,13 +51,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
   ARObjectManager? arObjectManager;
   ARAnchorManager? arAnchorManager;
 
-  List<ARNode> nodes = [];
-  List<ARAnchor> anchors = [];
-  Map<String, ARAnchor> nodeAnchorMap = {}; // 노드 이름과 앵커를 매핑
-  Map<String, ARNode> nodeMap = {}; // ID와 노드를 직접 매핑
-  Map<String, String> tapIdToNodeNameMap = {}; // 탭 ID와 노드 이름 매핑
-  String? selectedNodeName;
-  String? selectedTapId; // 실제 탭된 ID 저장
+  final NodeManager nodeManager = NodeManager();
   bool isARInitialized = false;
 
   // 디버깅용 상태 추가
@@ -93,7 +88,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
               ),
             ),
           // 선택된 노드 정보 표시
-          if (selectedNodeName != null)
+          if (nodeManager.selectedNodeName != null)
             Positioned(
               top: 100,
               left: 20,
@@ -107,13 +102,18 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Selected: $selectedNodeName',
+                      'Selected: ${nodeManager.selectedNodeName}',
                       style: const TextStyle(color: Colors.white),
                     ),
-                    if (selectedTapId != null)
+                    if (nodeManager.selectedTapId != null)
                       Text(
-                        'Tap ID: $selectedTapId',
+                        'Tap ID: ${nodeManager.selectedTapId}',
                         style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    if (nodeManager.isMoveMode)
+                      const Text(
+                        'MOVE MODE - 평면을 탭하여 이동',
+                        style: TextStyle(color: Colors.yellow, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                   ],
                 ),
@@ -139,7 +139,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'Nodes: ${nodes.length}, Anchors: ${anchors.length}',
+                      'Nodes: ${nodeManager.nodes.length}, Anchors: ${nodeManager.anchors.length}',
                       style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
                     Text(
@@ -166,10 +166,23 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                     ElevatedButton(
                       onPressed: () => setState(() {
                         showDebug = !showDebug;
-                        debugMessage = "Nodes: ${nodes.map((n) => n.name).join(', ')}\nSelected: $selectedNodeName";
+                        debugMessage = "Nodes: ${nodeManager.nodes.map((n) => n.name).join(', ')}\nSelected: ${nodeManager.selectedNodeName}";
                       }),
                       child: Text(showDebug ? "Hide Debug" : "Show Debug"),
                     ),
+                    const SizedBox(height: 10),
+                    // Move Mode 버튼 추가
+                    if (nodeManager.selectedNodeName != null)
+                      ElevatedButton(
+                        onPressed: () {
+                          nodeManager.toggleMoveMode();
+                          setState(() {});
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: nodeManager.isMoveMode ? Colors.orange : Colors.blue,
+                        ),
+                        child: Text(nodeManager.isMoveMode ? "Exit Move Mode" : "Move Mode"),
+                      ),
                     const SizedBox(height: 10),
                     Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -220,168 +233,29 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
   }
 
   Future<void> onRemoveEverything() async {
-    // 순서 중요: 먼저 노드들을 제거하고 나서 앵커를 제거
-    for (var node in [...nodes]) {
-      try {
-        await this.arObjectManager?.removeNode(node);
-      } catch (e) {
-        print("Error removing node: $e");
-      }
-    }
-
-    for (var anchor in [...anchors]) {
-      try {
-        await this.arAnchorManager?.removeAnchor(anchor);
-      } catch (e) {
-        print("Error removing anchor: $e");
-      }
-    }
-
-    // 상태 초기화
-    nodes.clear();
-    anchors.clear();
-    nodeAnchorMap.clear(); // 매핑도 클리어
-    nodeMap.clear(); // 새로 추가된 매핑도 클리어
-    tapIdToNodeNameMap.clear(); // 탭 ID 매핑도 클리어
+    await nodeManager.removeEverything(arObjectManager, arAnchorManager);
 
     // UI 업데이트를 위한 setState 호출
     if (mounted) {
-      setState(() {
-        selectedNodeName = null;
-        selectedTapId = null;
-      });
+      setState(() {});
     }
   }
 
   Future<void> onRemoveSelected() async {
-    if (selectedNodeName != null) {
-      setState(() {
-        debugMessage = "시작: $selectedNodeName 삭제 중...";
-        showDebug = true;
-      });
+    String result = await nodeManager.removeSelected(arObjectManager, arAnchorManager);
 
-      ARNode? nodeToRemove;
-      ARAnchor? anchorToRemove;
-
-      // 선택된 노드 찾기 - 더 정확한 매칭
-      for (var node in [...nodes]) {
-        if (node.name == selectedNodeName) {
-          nodeToRemove = node;
-          break;
-        }
-      }
-
-      // 노드를 찾지 못한 경우 nodeMap에서 시도
-      if (nodeToRemove == null) {
-        nodeToRemove = nodeMap[selectedNodeName];
-      }
-
-      // 여전히 찾지 못한 경우 마지막 노드로 시도 (임시 해결책)
-      if (nodeToRemove == null && nodes.isNotEmpty) {
-        setState(() {
-          debugMessage = "정확한 매칭 실패, 마지막 생성된 노드로 시도...";
-        });
-        nodeToRemove = nodes.last; // 마지막 노드 사용
-      }
-
-      if (nodeToRemove != null) {
-        // 해당 노드의 앵커 찾기
-        anchorToRemove = nodeAnchorMap[nodeToRemove.name];
-
-        try {
-          setState(() {
-            debugMessage = "노드 제거 중... (${nodeToRemove!.name})";
-          });
-
-          await this.arObjectManager?.removeNode(nodeToRemove);
-          nodes.remove(nodeToRemove);
-          nodeMap.remove(nodeToRemove.name); // 매핑에서도 제거
-
-          // 탭 ID 매핑에서도 제거
-          String? tapIdToRemove;
-          tapIdToNodeNameMap.forEach((tapId, nodeName) {
-            if (nodeName == nodeToRemove?.name) {
-              tapIdToRemove = tapId;
-            }
-          });
-          if (tapIdToRemove != null) {
-            tapIdToNodeNameMap.remove(tapIdToRemove);
-          }
-
-          setState(() {
-            debugMessage = "노드 제거 완료. 앵커 제거 중...";
-          });
-
-          if (anchorToRemove != null) {
-            await this.arAnchorManager?.removeAnchor(anchorToRemove);
-            anchors.remove(anchorToRemove);
-            nodeAnchorMap.remove(nodeToRemove.name);
-          }
-
-          setState(() {
-            selectedNodeName = null;
-            selectedTapId = null;
-            debugMessage = "✅ 삭제 완료! 남은 노드: ${nodes.length}개";
-          });
-
-        } catch (e) {
-          setState(() {
-            debugMessage = "❌ 에러: $e";
-          });
-        }
-      } else {
-        setState(() {
-          debugMessage = "❌ 노드를 찾을 수 없음: $selectedNodeName\n현재 노드들: ${nodes.map((n) => n.name).join(', ')}";
-        });
-      }
-    } else {
-      setState(() {
-        debugMessage = "❌ 선택된 노드가 없음";
-        showDebug = true;
-      });
-    }
+    setState(() {
+      debugMessage = result;
+      showDebug = true;
+    });
   }
 
   Future<void> onNodeTapped(List<String> nodeNames) async {
-    print("Node tapped: $nodeNames");
-    print("Available nodes: ${nodes.map((n) => n.name).join(', ')}");
-    printNodeDebugInfo(); // 디버깅 정보 출력
-
     if (nodeNames.isNotEmpty && mounted) {
-      String tappedNodeId = nodeNames.first;
-
-      // 매핑 테이블에서 실제 노드 이름 찾기
-      String? actualNodeName = tapIdToNodeNameMap[tappedNodeId];
-
-      // 매핑이 없으면 순서대로 매핑 시도 (노드 추가 순서 기준)
-      if (actualNodeName == null && nodes.isNotEmpty) {
-        // 현재 탭 ID 목록에서 인덱스 찾기
-        List<String> allTapIds = tapIdToNodeNameMap.keys.toList();
-
-        // 새로운 탭 ID인 경우, 가장 최근 노드와 매핑
-        if (!allTapIds.contains(tappedNodeId)) {
-          // 아직 매핑되지 않은 노드 찾기
-          for (var node in nodes.reversed) {
-            if (!tapIdToNodeNameMap.containsValue(node.name)) {
-              actualNodeName = node.name;
-              tapIdToNodeNameMap[tappedNodeId] = actualNodeName;
-              print("새로운 매핑 생성: $tappedNodeId -> $actualNodeName");
-              break;
-            }
-          }
-        }
-      }
-
-      // 여전히 찾지 못한 경우 마지막 노드 선택
-      if (actualNodeName == null && nodes.isNotEmpty) {
-        actualNodeName = nodes.last.name;
-        tapIdToNodeNameMap[tappedNodeId] = actualNodeName;
-      }
+      String result = nodeManager.handleNodeTap(nodeNames);
 
       setState(() {
-        selectedTapId = tappedNodeId;
-        selectedNodeName = actualNodeName;
-        debugMessage = "탭된 노드: $tappedNodeId\n실제 선택: $selectedNodeName\n사용가능 노드: ${nodes.map((n) => n.name).join(', ')}\n매핑 테이블: $tapIdToNodeNameMap";
+        debugMessage = result;
         showDebug = true;
       });
 
@@ -390,13 +264,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text("노드 선택됨"),
-            content: Text(
-                "탭된 노드 ID: $tappedNodeId\n"
-                    "선택된 노드: $selectedNodeName\n"
-                    "총 탭된 노드 수: ${nodeNames.length}\n"
-                    "사용가능한 노드들: ${nodes.map((n) => n.name).join(', ')}\n"
-                    "현재 매핑: ${tapIdToNodeNameMap.entries.map((e) => '${e.key} -> ${e.value}').join('\n')}"
-            ),
+            content: Text(nodeManager.getNodeTapDialogContent(nodeNames.first, nodeNames)),
             actions: [
               TextButton(
                 onPressed: () {
@@ -419,37 +287,49 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
           orElse: () => hitTestResults.first);
 
       if (singleHitTestResult != null) {
+        // Move Mode일 때는 선택된 노드 이동
+        if (nodeManager.isMoveMode && nodeManager.selectedNodeName != null) {
+          bool success = await nodeManager.moveNodeToPosition(
+              arObjectManager,
+              arAnchorManager,
+              singleHitTestResult
+          );
+
+          if (success) {
+            setState(() {
+              debugMessage = "노드 이동 완료: ${nodeManager.selectedNodeName}";
+            });
+          } else {
+            setState(() {
+              debugMessage = "노드 이동 실패";
+            });
+          }
+          return;
+        }
+
+        // 일반 모드일 때는 새 노드 생성
         var newAnchor =
         ARPlaneAnchor(transformation: singleHitTestResult.worldTransform);
         bool? didAddAnchor = await this.arAnchorManager?.addAnchor(newAnchor);
 
         if (didAddAnchor == true) {
-          anchors.add(newAnchor);
+          nodeManager.anchors.add(newAnchor);
 
-          // 고유한 노드 이름 생성 (타임스탬프 포함)
-          String nodeName = "duck_${DateTime.now().millisecondsSinceEpoch}";
-
-          var newNode = ARNode(
-              type: NodeType.webGLB,
-              uri: "https://github.com/KhronosGroup/glTF-Sample-Models/raw/refs/heads/main/2.0/Duck/glTF-Binary/Duck.glb",
-              scale: vm.Vector3(0.2, 0.2, 0.2),
-              position: vm.Vector3(0.0, 0.0, 0.0),
-              rotation: vm.Vector4(1.0, 0.0, 0.0, 0.0),
-              name: nodeName);
+          var newNode = ARModelFactory.createDuckNode();
 
           bool? didAddNodeToAnchor = await this
               .arObjectManager
               ?.addNode(newNode, planeAnchor: newAnchor);
 
           if (didAddNodeToAnchor == true) {
-            nodes.add(newNode);
-            nodeAnchorMap[nodeName] = newAnchor; // 노드와 앵커 매핑 저장
-            nodeMap[nodeName] = newNode; // 노드 직접 매핑도 저장
-            print("Node added successfully: $nodeName");
+            nodeManager.nodes.add(newNode);
+            nodeManager.nodeAnchorMap[newNode.name] = newAnchor; // 노드와 앵커 매핑 저장
+            nodeManager.nodeMap[newNode.name] = newNode; // 노드 직접 매핑도 저장
+            print("Node added successfully: ${newNode.name}");
 
             // 디버그 정보 업데이트
             setState(() {
-              debugMessage = "새 노드 추가됨: $nodeName\n총 노드 수: ${nodes.length}";
+              debugMessage = "새 노드 추가됨: ${newNode.name}\n총 노드 수: ${nodeManager.nodes.length}";
             });
           } else {
             if (mounted) {
@@ -489,24 +369,5 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
     } catch (e) {
       print("Error in onPlaneOrPointTapped: $e");
     }
-  }
-
-  // 추가적인 디버깅을 위한 메서드
-  void printNodeDebugInfo() {
-    print("=== 노드 디버그 정보 ===");
-    print("총 노드 수: ${nodes.length}");
-    print("총 앵커 수: ${anchors.length}");
-    print("선택된 노드: $selectedNodeName");
-
-    for (int i = 0; i < nodes.length; i++) {
-      var node = nodes[i];
-      print("노드 $i: 이름=${node.name}, 타입=${node.type}");
-    }
-
-    print("노드-앵커 매핑: $nodeAnchorMap");
-    print("노드 직접 매핑: ${nodeMap.keys.toList()}");
-    print("탭 ID 매핑: $tapIdToNodeNameMap");
-    print("선택된 탭 ID: $selectedTapId");
-    print("========================");
   }
 }
