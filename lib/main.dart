@@ -1,4 +1,4 @@
-// main.dart
+// main.dart - 위치 기반 노드 매핑 버전
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -10,7 +10,7 @@ import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
 import 'package:ar_flutter_plugin_2/widgets/ar_view.dart';
 import 'package:flutter/material.dart';
 
-import 'node_manager.dart';
+import 'node_manager.dart'; // 새로운 위치 기반 매니저
 import 'ar_model_factory.dart';
 
 void main() {
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'AR Position-Based Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
@@ -51,12 +51,15 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
   ARObjectManager? arObjectManager;
   ARAnchorManager? arAnchorManager;
 
-  final NodeManager nodeManager = NodeManager();
+  final PositionBasedNodeManager nodeManager = PositionBasedNodeManager(); // 새로운 매니저 사용
   bool isARInitialized = false;
 
   // 디버깅용 상태 추가
   String debugMessage = "";
   bool showDebug = false;
+
+  // 노드 탭할 때의 히트 결과를 저장하기 위한 변수
+  List<ARHitTestResult>? lastHitResults;
 
   @override
   void dispose() {
@@ -68,7 +71,8 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Anchors & Objects on Planes'),
+          title: const Text('Position-Based Node Selection'),
+          backgroundColor: Colors.deepPurple,
         ),
         body: Stack(children: [
           ARView(
@@ -103,13 +107,12 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                   children: [
                     Text(
                       'Selected: ${nodeManager.selectedNodeName}',
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
-                    if (nodeManager.selectedTapId != null)
-                      Text(
-                        'Tap ID: ${nodeManager.selectedTapId}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
+                    Text(
+                      'Total Nodes: ${nodeManager.nodeCount}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
                     if (nodeManager.isMoveMode)
                       const Text(
                         'MOVE MODE - 평면을 탭하여 이동',
@@ -122,7 +125,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
           // 디버그 정보 표시
           if (showDebug)
             Positioned(
-              top: 150,
+              top: 200,
               left: 20,
               right: 20,
               child: Container(
@@ -139,8 +142,8 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'Nodes: ${nodeManager.nodes.length}, Anchors: ${nodeManager.anchors.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      nodeManager.getDebugInfo(),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
                     ),
                     Text(
                       debugMessage,
@@ -166,12 +169,12 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                     ElevatedButton(
                       onPressed: () => setState(() {
                         showDebug = !showDebug;
-                        debugMessage = "Nodes: ${nodeManager.nodes.map((n) => n.name).join(', ')}\nSelected: ${nodeManager.selectedNodeName}";
+                        debugMessage = "위치 기반 매핑 시스템 활성";
                       }),
                       child: Text(showDebug ? "Hide Debug" : "Show Debug"),
                     ),
                     const SizedBox(height: 10),
-                    // Move Mode 버튼 추가
+                    // Move Mode 버튼
                     if (nodeManager.selectedNodeName != null)
                       ElevatedButton(
                         onPressed: () {
@@ -194,6 +197,22 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                               onPressed: onRemoveSelected,
                               child: const Text("Remove Selected")),
                         ]),
+                    const SizedBox(height: 10),
+                    // 위치 기반 매핑 안내
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green),
+                      ),
+                      child: const Text(
+                        "🎯 위치 기반 매핑 활성\n노드를 탭하면 가장 가까운 노드가 선택됩니다",
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -235,9 +254,10 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
   Future<void> onRemoveEverything() async {
     await nodeManager.removeEverything(arObjectManager, arAnchorManager);
 
-    // UI 업데이트를 위한 setState 호출
     if (mounted) {
-      setState(() {});
+      setState(() {
+        debugMessage = "모든 노드 제거 완료";
+      });
     }
   }
 
@@ -252,7 +272,11 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
 
   Future<void> onNodeTapped(List<String> nodeNames) async {
     if (nodeNames.isNotEmpty && mounted) {
-      String result = nodeManager.handleNodeTap(nodeNames);
+      print("\n🎯 노드 탭 이벤트 발생");
+      print("탭된 ID들: $nodeNames");
+
+      // 위치 기반 매핑 시도 (히트 결과가 있다면)
+      String result = nodeManager.handleNodeTapWithPosition(nodeNames, lastHitResults);
 
       setState(() {
         debugMessage = result;
@@ -263,8 +287,21 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text("노드 선택됨"),
-            content: Text(nodeManager.getNodeTapDialogContent(nodeNames.first, nodeNames)),
+            title: const Text("위치 기반 노드 선택"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("선택된 노드: ${nodeManager.selectedNodeName ?? 'None'}"),
+                const SizedBox(height: 8),
+                Text("탭된 노드 ID: ${nodeNames.first}"),
+                const SizedBox(height: 8),
+                Text("총 노드 수: ${nodeManager.nodeCount}"),
+                const SizedBox(height: 8),
+                Text("매핑 결과:"),
+                Text(result, style: const TextStyle(fontSize: 12)),
+              ],
+            ),
             actions: [
               TextButton(
                 onPressed: () {
@@ -279,8 +316,10 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
     }
   }
 
-  Future<void> onPlaneOrPointTapped(
-      List<ARHitTestResult> hitTestResults) async {
+  Future<void> onPlaneOrPointTapped(List<ARHitTestResult> hitTestResults) async {
+    // 히트 결과를 저장 (노드 탭 시 사용하기 위해)
+    lastHitResults = hitTestResults;
+
     try {
       var singleHitTestResult = hitTestResults.firstWhere(
               (hitTestResult) => hitTestResult.type == ARHitTestResultType.plane,
@@ -308,13 +347,10 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
         }
 
         // 일반 모드일 때는 새 노드 생성
-        var newAnchor =
-        ARPlaneAnchor(transformation: singleHitTestResult.worldTransform);
+        var newAnchor = ARPlaneAnchor(transformation: singleHitTestResult.worldTransform);
         bool? didAddAnchor = await this.arAnchorManager?.addAnchor(newAnchor);
 
         if (didAddAnchor == true) {
-          nodeManager.anchors.add(newAnchor);
-
           var newNode = ARModelFactory.createDuckNode();
 
           bool? didAddNodeToAnchor = await this
@@ -322,16 +358,19 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
               ?.addNode(newNode, planeAnchor: newAnchor);
 
           if (didAddNodeToAnchor == true) {
-            nodeManager.nodes.add(newNode);
-            nodeManager.nodeAnchorMap[newNode.name] = newAnchor; // 노드와 앵커 매핑 저장
-            nodeManager.nodeMap[newNode.name] = newNode; // 노드 직접 매핑도 저장
+            // 위치 기반 매니저에 노드 추가 (위치 정보 포함)
+            nodeManager.addNode(newNode, newAnchor, singleHitTestResult.worldTransform);
+
             print("Node added successfully: ${newNode.name}");
 
             // 디버그 정보 업데이트
             setState(() {
-              debugMessage = "새 노드 추가됨: ${newNode.name}\n총 노드 수: ${nodeManager.nodes.length}";
+              debugMessage = "새 노드 추가됨: ${newNode.name}\n총 노드 수: ${nodeManager.nodeCount}";
             });
           } else {
+            // 노드 추가 실패 시 앵커 제거
+            await arAnchorManager?.removeAnchor(newAnchor);
+
             if (mounted) {
               showDialog(
                 context: context,
@@ -368,6 +407,11 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
       }
     } catch (e) {
       print("Error in onPlaneOrPointTapped: $e");
+      if (mounted) {
+        setState(() {
+          debugMessage = "오류 발생: $e";
+        });
+      }
     }
   }
 }
