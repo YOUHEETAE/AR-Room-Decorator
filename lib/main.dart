@@ -1,4 +1,4 @@
-// main.dart - 최신 노드 조작 방식으로 업데이트
+// main.dart - 최신 노드 조작 방식으로 업데이트 (회전 기능 포함)
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -148,10 +148,11 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
             Positioned(
               top: 100,
               left: 20,
+              right: 20,
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black87.withOpacity(0.8),
+                  color: Colors.black87.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white24),
                 ),
@@ -168,7 +169,29 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                     ),
                     const SizedBox(height: 8),
 
-                    // 이동 모드 표시
+                    // 실시간 액션 로그 표시
+                    if (nodeManager.lastActionLog.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          nodeManager.lastActionLog,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // 모드 표시
                     if (nodeManager.isMoveMode)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -178,6 +201,18 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                         ),
                         child: const Text(
                           '🚀 이동 모드 - 평면을 탭하세요',
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    if (nodeManager.isRotateMode)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          '🔄 회전 모드 - 회전 버튼을 누르세요',
                           style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -264,7 +299,8 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                               child: Text(
                                 'Total Nodes: ${nodeManager.totalNodes}\n'
                                     'Active Node: ${nodeManager.activeNodeName}\n'
-                                    'Move Mode: ${nodeManager.isMoveMode}',
+                                    'Move Mode: ${nodeManager.isMoveMode}\n'
+                                    'Rotate Mode: ${nodeManager.isRotateMode}',
                                 style: const TextStyle(color: Colors.white, fontSize: 12),
                               ),
                             ),
@@ -329,26 +365,50 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                     ),
                     const SizedBox(height: 10),
 
-                    // 이동 버튼 (활성 노드가 있을 때만)
+                    // 이동/회전 버튼들 (활성 노드가 있을 때만)
                     if (nodeManager.hasActiveNode) ...[
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          nodeManager.toggleMoveMode();
-                          setState(() {});
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: (nodeManager.isMoveMode ? Colors.orange : Colors.blue).withOpacity(0.8),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        ),
-                        icon: Icon(
-                          nodeManager.isMoveMode ? Icons.exit_to_app : Icons.open_with,
-                          size: 18,
-                        ),
-                        label: Text(
-                          nodeManager.isMoveMode ? "Exit Move" : "Move Active",
-                          style: const TextStyle(fontSize: 14),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              nodeManager.toggleMoveMode();
+                              setState(() {});
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: (nodeManager.isMoveMode ? Colors.orange : Colors.blue).withOpacity(0.8),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            icon: Icon(
+                              nodeManager.isMoveMode ? Icons.exit_to_app : Icons.open_with,
+                              size: 16,
+                            ),
+                            label: Text(
+                              nodeManager.isMoveMode ? "Exit Move" : "Move",
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              bool success = await nodeManager.rotateActiveNode(arObjectManager, arAnchorManager);
+                              setState(() {
+                                if (success) {
+                                  debugMessage = "✅ 회전 완료: ${nodeManager.activeNodeName}";
+                                } else {
+                                  debugMessage = "❌ 회전 실패";
+                                }
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple.withOpacity(0.8),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            icon: const Icon(Icons.rotate_right, size: 16),
+                            label: const Text("Rotate", style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                     ],
@@ -416,6 +476,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
       customPlaneTexturePath: "Images/triangle.png",
       showWorldOrigin: true,
       showAnimatedGuide: false,
+      handleRotation: true,  // ← 제스처 회전 활성화 (공식 지원)
     );
     this.arObjectManager!.onInitialize();
 

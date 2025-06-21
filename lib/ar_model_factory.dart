@@ -13,7 +13,7 @@ class ARModelFactory {
 
     return ARNode(
       type: NodeType.webGLB,
-      uri: "https://github.com/KhronosGroup/glTF-Sample-Models/raw/refs/heads/main/2.0/Duck/glTF-Binary/Duck.glb",
+      uri: "https://github.com/KhronosGroup/glTF-Sample-Models/raw/refs/heads/main/2.0/Avocado/glTF-Binary/Avocado.glb",
       scale: vm.Vector3(0.2, 0.2, 0.2),
       position: vm.Vector3.zero(),
       rotation: vm.Vector4(1.0, 0.0, 0.0, 0.0),
