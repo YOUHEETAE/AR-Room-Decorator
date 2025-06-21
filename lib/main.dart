@@ -1,4 +1,4 @@
-// main.dart - 위치 기반 노드 매핑 버전
+// main.dart
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -10,7 +10,7 @@ import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
 import 'package:ar_flutter_plugin_2/widgets/ar_view.dart';
 import 'package:flutter/material.dart';
 
-import 'node_manager.dart'; // 새로운 위치 기반 매니저
+import 'node_manager.dart';
 import 'ar_model_factory.dart';
 
 void main() {
@@ -23,11 +23,60 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AR Position-Based Demo',
+      title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const ObjectsOnPlanes(),
+      home: const InitialARScreen(),
+    );
+  }
+}
+
+class InitialARScreen extends StatelessWidget {
+  const InitialARScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.blueGrey[900],
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              '나만의 공간을 디자인해보세요',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w300,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 50),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ObjectsOnPlanes()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.withOpacity(0.8),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 5,
+              ),
+              child: const Text(
+                '디자인 시작',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -51,174 +100,147 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
   ARObjectManager? arObjectManager;
   ARAnchorManager? arAnchorManager;
 
-  final PositionBasedNodeManager nodeManager = PositionBasedNodeManager(); // 새로운 매니저 사용
+  final NodeManager nodeManager = NodeManager();
   bool isARInitialized = false;
 
-  // 디버깅용 상태 추가
   String debugMessage = "";
   bool showDebug = false;
 
-  // 노드 탭할 때의 히트 결과를 저장하기 위한 변수
-  List<ARHitTestResult>? lastHitResults;
-
   @override
   void dispose() {
-    super.dispose();
     arSessionManager?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Position-Based Node Selection'),
-          backgroundColor: Colors.deepPurple,
+      appBar: AppBar(
+        title: const Text('Anchors & Objects on Planes'),
+      ),
+      body: Stack(children: [
+        ARView(
+          onARViewCreated: onARViewCreated,
+          planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
         ),
-        body: Stack(children: [
-          ARView(
-            onARViewCreated: onARViewCreated,
-            planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
+        if (!isARInitialized)
+          const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('AR 초기화 중...', style: TextStyle(color: Colors.white)),
+              ],
+            ),
           ),
-          // AR 초기화 로딩 표시
-          if (!isARInitialized)
-            const Center(
+        if (nodeManager.selectedNodeName != null)
+          Positioned(
+            top: 100,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('AR 초기화 중...', style: TextStyle(color: Colors.white)),
+                  Text(
+                    'Selected: ${nodeManager.selectedNodeName}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  if (nodeManager.selectedTapId != null)
+                    Text(
+                      'Tap ID: ${nodeManager.selectedTapId}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  if (nodeManager.isMoveMode)
+                    const Text(
+                      'MOVE MODE - 평면을 탭하여 이동',
+                      style: TextStyle(color: Colors.yellow, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                 ],
               ),
             ),
-          // 선택된 노드 정보 표시
-          if (nodeManager.selectedNodeName != null)
-            Positioned(
-              top: 100,
-              left: 20,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Selected: ${nodeManager.selectedNodeName}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Total Nodes: ${nodeManager.nodeCount}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                    if (nodeManager.isMoveMode)
-                      const Text(
-                        'MOVE MODE - 평면을 탭하여 이동',
-                        style: TextStyle(color: Colors.yellow, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                  ],
-                ),
+          ),
+        if (showDebug)
+          Positioned(
+            top: 150,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Debug Info:',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Nodes: ${nodeManager.nodes.length}, Anchors: ${nodeManager.anchors.length}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  Text(
+                    debugMessage,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => showDebug = false),
+                    child: const Text('Close', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
               ),
             ),
-          // 디버그 정보 표시
-          if (showDebug)
-            Positioned(
-              top: 200,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Debug Info:',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      nodeManager.getDebugInfo(),
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                    ),
-                    Text(
-                      debugMessage,
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                    TextButton(
-                      onPressed: () => setState(() => showDebug = false),
-                      child: const Text('Close', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          Align(
-            alignment: FractionalOffset.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 디버그 토글 버튼
+          ),
+        Align(
+          alignment: FractionalOffset.bottomCenter,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => setState(() {
+                      showDebug = !showDebug;
+                      debugMessage = "Nodes: ${nodeManager.nodes.map((n) => n.name).join(', ')}\nSelected: ${nodeManager.selectedNodeName}";
+                    }),
+                    child: Text(showDebug ? "Hide Debug" : "Show Debug"),
+                  ),
+                  const SizedBox(height: 10),
+                  if (nodeManager.selectedNodeName != null)
                     ElevatedButton(
-                      onPressed: () => setState(() {
-                        showDebug = !showDebug;
-                        debugMessage = "위치 기반 매핑 시스템 활성";
-                      }),
-                      child: Text(showDebug ? "Hide Debug" : "Show Debug"),
+                      onPressed: () {
+                        nodeManager.toggleMoveMode();
+                        setState(() {});
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: nodeManager.isMoveMode ? Colors.orange : Colors.blue,
+                      ),
+                      child: Text(nodeManager.isMoveMode ? "Exit Move Mode" : "Move Mode"),
                     ),
-                    const SizedBox(height: 10),
-                    // Move Mode 버튼
-                    if (nodeManager.selectedNodeName != null)
-                      ElevatedButton(
-                        onPressed: () {
-                          nodeManager.toggleMoveMode();
-                          setState(() {});
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: nodeManager.isMoveMode ? Colors.orange : Colors.blue,
-                        ),
-                        child: Text(nodeManager.isMoveMode ? "Exit Move Mode" : "Move Mode"),
-                      ),
-                    const SizedBox(height: 10),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                              onPressed: onRemoveEverything,
-                              child: const Text("Remove Everything")),
-                          ElevatedButton(
-                              onPressed: onRemoveSelected,
-                              child: const Text("Remove Selected")),
-                        ]),
-                    const SizedBox(height: 10),
-                    // 위치 기반 매핑 안내
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green),
-                      ),
-                      child: const Text(
-                        "🎯 위치 기반 매핑 활성\n노드를 탭하면 가장 가까운 노드가 선택됩니다",
-                        style: TextStyle(color: Colors.white, fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(onPressed: onRemoveEverything, child: const Text("Remove Everything")),
+                      ElevatedButton(onPressed: onRemoveSelected, child: const Text("Remove Selected")),
+                    ],
+                  ),
+                ],
               ),
             ),
-          )
-        ]));
+          ),
+        )
+      ]),
+    );
   }
 
   void onARViewCreated(
@@ -241,7 +263,6 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
     this.arSessionManager!.onPlaneOrPointTap = onPlaneOrPointTapped;
     this.arObjectManager!.onNodeTap = onNodeTapped;
 
-    // AR 초기화 완료 표시
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) {
         setState(() {
@@ -253,124 +274,78 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
 
   Future<void> onRemoveEverything() async {
     await nodeManager.removeEverything(arObjectManager, arAnchorManager);
-
-    if (mounted) {
-      setState(() {
-        debugMessage = "모든 노드 제거 완료";
-      });
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> onRemoveSelected() async {
     String result = await nodeManager.removeSelected(arObjectManager, arAnchorManager);
-
-    setState(() {
-      debugMessage = result;
-      showDebug = true;
-    });
-  }
-
-  Future<void> onNodeTapped(List<String> nodeNames) async {
-    if (nodeNames.isNotEmpty && mounted) {
-      print("\n🎯 노드 탭 이벤트 발생");
-      print("탭된 ID들: $nodeNames");
-
-      // 위치 기반 매핑 시도 (히트 결과가 있다면)
-      String result = nodeManager.handleNodeTapWithPosition(nodeNames, lastHitResults);
-
+    if (mounted) {
       setState(() {
         debugMessage = result;
         showDebug = true;
       });
+    }
+  }
 
+  Future<void> onNodeTapped(List<String> nodeNames) async {
+    if (nodeNames.isNotEmpty && mounted) {
+      String result = nodeManager.handleNodeTap(nodeNames);
+      setState(() {
+        debugMessage = result;
+        showDebug = true;
+      });
       showDialog(
         context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text("위치 기반 노드 선택"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("선택된 노드: ${nodeManager.selectedNodeName ?? 'None'}"),
-                const SizedBox(height: 8),
-                Text("탭된 노드 ID: ${nodeNames.first}"),
-                const SizedBox(height: 8),
-                Text("총 노드 수: ${nodeManager.nodeCount}"),
-                const SizedBox(height: 8),
-                Text("매핑 결과:"),
-                Text(result, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text("확인"),
-              ),
-            ],
-          );
-        },
+        builder: (context) => AlertDialog(
+          title: const Text("노드 선택됨"),
+          content: Text(nodeManager.getNodeTapDialogContent(nodeNames.first, nodeNames)),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("확인"))
+          ],
+        ),
       );
     }
   }
 
   Future<void> onPlaneOrPointTapped(List<ARHitTestResult> hitTestResults) async {
-    // 히트 결과를 저장 (노드 탭 시 사용하기 위해)
-    lastHitResults = hitTestResults;
-
     try {
       var singleHitTestResult = hitTestResults.firstWhere(
-              (hitTestResult) => hitTestResult.type == ARHitTestResultType.plane,
+              (hit) => hit.type == ARHitTestResultType.plane,
           orElse: () => hitTestResults.first);
 
       if (singleHitTestResult != null) {
-        // Move Mode일 때는 선택된 노드 이동
         if (nodeManager.isMoveMode && nodeManager.selectedNodeName != null) {
           bool success = await nodeManager.moveNodeToPosition(
-              arObjectManager,
-              arAnchorManager,
-              singleHitTestResult
-          );
+              arObjectManager, arAnchorManager, singleHitTestResult);
 
-          if (success) {
-            setState(() {
-              debugMessage = "노드 이동 완료: ${nodeManager.selectedNodeName}";
-            });
-          } else {
-            setState(() {
-              debugMessage = "노드 이동 실패";
-            });
-          }
+          setState(() {
+            debugMessage = success
+                ? "노드 이동 완료: ${nodeManager.selectedNodeName}"
+                : "노드 이동 실패";
+          });
           return;
         }
 
-        // 일반 모드일 때는 새 노드 생성
         var newAnchor = ARPlaneAnchor(transformation: singleHitTestResult.worldTransform);
-        bool? didAddAnchor = await this.arAnchorManager?.addAnchor(newAnchor);
+        bool? didAddAnchor = await arAnchorManager?.addAnchor(newAnchor);
 
         if (didAddAnchor == true) {
+          nodeManager.anchors.add(newAnchor);
+
           var newNode = ARModelFactory.createDuckNode();
 
-          bool? didAddNodeToAnchor = await this
-              .arObjectManager
-              ?.addNode(newNode, planeAnchor: newAnchor);
+          bool? didAddNodeToAnchor = await arObjectManager?.addNode(newNode, planeAnchor: newAnchor);
 
           if (didAddNodeToAnchor == true) {
-            // 위치 기반 매니저에 노드 추가 (위치 정보 포함)
-            nodeManager.addNode(newNode, newAnchor, singleHitTestResult.worldTransform);
-
+            nodeManager.nodes.add(newNode);
+            nodeManager.nodeAnchorMap[newNode.name] = newAnchor;
+            nodeManager.nodeMap[newNode.name] = newNode;
             print("Node added successfully: ${newNode.name}");
 
-            // 디버그 정보 업데이트
             setState(() {
-              debugMessage = "새 노드 추가됨: ${newNode.name}\n총 노드 수: ${nodeManager.nodeCount}";
+              debugMessage = "새 노드 추가됨: ${newNode.name}\n총 노드 수: ${nodeManager.nodes.length}";
             });
           } else {
-            // 노드 추가 실패 시 앵커 제거
-            await arAnchorManager?.removeAnchor(newAnchor);
-
             if (mounted) {
               showDialog(
                 context: context,
@@ -378,10 +353,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                   title: const Text("오류"),
                   content: const Text("앵커에 노드 추가 실패"),
                   actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text("확인"),
-                    ),
+                    TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("확인"))
                   ],
                 ),
               );
@@ -395,10 +367,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
                 title: const Text("오류"),
                 content: const Text("앵커 추가 실패"),
                 actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text("확인"),
-                  ),
+                  TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("확인"))
                 ],
               ),
             );
@@ -407,11 +376,6 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
       }
     } catch (e) {
       print("Error in onPlaneOrPointTapped: $e");
-      if (mounted) {
-        setState(() {
-          debugMessage = "오류 발생: $e";
-        });
-      }
     }
   }
 }
