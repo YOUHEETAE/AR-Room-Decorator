@@ -1,4 +1,4 @@
-// main.dart - 2단계 완성 버전
+// main.dart - 회전 기능 제거된 롤백 버전
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -147,19 +147,12 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
             onClose: () => setState(() => showDebug = false),
           ),
 
-          // 회전 컨트롤 (회전 모드일 때만 표시)
-          RotationControlWidget(
-            nodeManager: nodeManager,
-            onRotationAction: _onRotationAction,
-          ),
-
           // 컨트롤 버튼들
           ControlButtonsWidget(
             nodeManager: nodeManager,
             showDebug: showDebug,
             onToggleDebug: _toggleDebug,
             onToggleMoveMode: _toggleMoveMode,
-            onToggleRotateMode: _toggleRotateMode,
             onRemoveEverything: _onRemoveEverything,
             onRemoveSelected: nodeManager.selectedNodeName != null ? _onRemoveSelected : null,
           ),
@@ -207,35 +200,6 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
     setState(() {});
   }
 
-  void _toggleRotateMode() {
-    nodeManager.toggleRotateMode();
-    setState(() {});
-  }
-
-  // 회전 액션 처리 (3단계에서 실제 구현)
-  void _onRotationAction(String action) async {
-    String message = "";
-
-    switch (action) {
-      case "clockwise":
-        bool success = await nodeManager.rotateNodeClockwise(arObjectManager, arAnchorManager);
-        message = success ? "시계방향 회전 완료" : "회전 실패 (미구현)";
-        break;
-      case "counter_clockwise":
-        bool success = await nodeManager.rotateNodeCounterClockwise(arObjectManager, arAnchorManager);
-        message = success ? "반시계방향 회전 완료" : "회전 실패 (미구현)";
-        break;
-      case "reset":
-        bool success = await nodeManager.setNodeRotation(arObjectManager, arAnchorManager, 0.0);
-        message = success ? "회전 리셋 완료" : "회전 리셋 실패 (미구현)";
-        break;
-    }
-
-    setState(() {
-      debugMessage = message;
-    });
-  }
-
   Future<void> _onRemoveEverything() async {
     await nodeManager.removeEverything(arObjectManager, arAnchorManager);
     if (mounted) setState(() => debugMessage = "모든 노드가 제거되었습니다.");
@@ -275,14 +239,6 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
             debugMessage = success
                 ? "노드 이동 완료: ${nodeManager.selectedNodeName}"
                 : "노드 이동 실패";
-          });
-          return;
-        }
-
-        // 회전 모드일 때는 평면 탭 무시
-        if (nodeManager.isRotateMode) {
-          setState(() {
-            debugMessage = "회전 모드에서는 컨트롤 버튼을 사용하세요";
           });
           return;
         }

@@ -1,4 +1,4 @@
-// ar_widgets.dart - UI 위젯들 분리
+// ar_widgets.dart - UI 위젯들 분리 (디버그 위젯 제거, 반투명 적용)
 import 'package:flutter/material.dart';
 import 'node_manager.dart';
 
@@ -21,7 +21,7 @@ class SelectedNodeInfoWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.black87,
+          color: Colors.black87.withOpacity(0.8),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white24),
         ),
@@ -64,98 +64,6 @@ class SelectedNodeInfoWidget extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// 회전 컨트롤 위젯
-class RotationControlWidget extends StatelessWidget {
-  final NodeManager nodeManager;
-  final Function(String) onRotationAction; // 회전 액션 콜백
-
-  const RotationControlWidget({
-    super.key,
-    required this.nodeManager,
-    required this.onRotationAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (!nodeManager.isRotateMode || nodeManager.selectedNodeName == null) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned(
-      top: 220,
-      left: 20,
-      right: 20,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.black87,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.purple.withOpacity(0.5)),
-        ),
-        child: Column(
-          children: [
-            const Text(
-              '회전 컨트롤',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // 반시계방향 회전 버튼
-                ElevatedButton(
-                  onPressed: () => onRotationAction("counter_clockwise"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(16),
-                  ),
-                  child: const Icon(Icons.rotate_left, color: Colors.white, size: 24),
-                ),
-
-                // 현재 회전값 표시
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${nodeManager.getSelectedNodeRotation().toStringAsFixed(0)}°',
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-
-                // 시계방향 회전 버튼
-                ElevatedButton(
-                  onPressed: () => onRotationAction("clockwise"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(16),
-                  ),
-                  child: const Icon(Icons.rotate_right, color: Colors.white, size: 24),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // 리셋 버튼
-            ElevatedButton(
-              onPressed: () => onRotationAction("reset"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[700],
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              ),
-              child: const Text('리셋', style: TextStyle(color: Colors.white)),
-            ),
           ],
         ),
       ),
@@ -214,7 +122,7 @@ class InstructionsWidget extends StatelessWidget {
   }
 }
 
-// 디버그 정보 위젯
+// 디버그 정보 위젯 (개선된 버전 - 스크롤 가능, 큰 화면)
 class DebugInfoWidget extends StatelessWidget {
   final bool showDebug;
   final NodeManager nodeManager;
@@ -237,35 +145,82 @@ class DebugInfoWidget extends StatelessWidget {
       top: 220,
       left: 20,
       right: 20,
+      bottom: 200, // 화면 아래쪽까지 확장
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.black.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.withOpacity(0.5)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Debug Info:',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '🔍 Debug Log:',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                IconButton(
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Nodes: ${nodeManager.nodes.length}, Anchors: ${nodeManager.anchors.length}',
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
-            if (debugMessage.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                debugMessage,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ],
             const SizedBox(height: 8),
-            TextButton(
-              onPressed: onClose,
-              child: const Text('Close', style: TextStyle(color: Colors.white)),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 기본 정보
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Nodes: ${nodeManager.nodes.length}, Anchors: ${nodeManager.anchors.length}\n'
+                            'Selected: ${nodeManager.selectedNodeName ?? "없음"}\n'
+                            'Move Mode: ${nodeManager.isMoveMode}\n'
+                            'Rotate Mode: ${nodeManager.isRotateMode}',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 상세 디버그 메시지
+                    if (debugMessage.isNotEmpty) ...[
+                      const Text(
+                        '📋 상세 로그:',
+                        style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          debugMessage,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontFamily: 'monospace', // 모노스페이스 폰트로 읽기 쉽게
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -274,13 +229,12 @@ class DebugInfoWidget extends StatelessWidget {
   }
 }
 
-// 컨트롤 버튼들 위젯
+// 컨트롤 버튼들 위젯 (회전 기능 제거)
 class ControlButtonsWidget extends StatelessWidget {
   final NodeManager nodeManager;
   final bool showDebug;
   final VoidCallback onToggleDebug;
   final VoidCallback onToggleMoveMode;
-  final VoidCallback onToggleRotateMode; // 회전 모드 토글 추가
   final VoidCallback onRemoveEverything;
   final VoidCallback? onRemoveSelected;
 
@@ -290,7 +244,6 @@ class ControlButtonsWidget extends StatelessWidget {
     required this.showDebug,
     required this.onToggleDebug,
     required this.onToggleMoveMode,
-    required this.onToggleRotateMode, // 회전 모드 토글 추가
     required this.onRemoveEverything,
     this.onRemoveSelected,
   });
@@ -311,54 +264,30 @@ class ControlButtonsWidget extends StatelessWidget {
                 icon: Icon(showDebug ? Icons.visibility_off : Icons.bug_report, size: 16),
                 label: Text(showDebug ? "Hide Debug" : "Show Debug"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[800],
+                  backgroundColor: Colors.grey[800]?.withOpacity(0.7),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
               ),
               const SizedBox(height: 10),
 
-              // 모드 컨트롤 버튼들 (선택된 노드가 있을 때만 표시)
+              // 이동 모드 버튼 (선택된 노드가 있을 때만 표시)
               if (nodeManager.selectedNodeName != null) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // 이동 모드 버튼
-                    ElevatedButton.icon(
-                      onPressed: onToggleMoveMode,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: nodeManager.isMoveMode ? Colors.orange : Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      icon: Icon(
-                        nodeManager.isMoveMode ? Icons.exit_to_app : Icons.open_with,
-                        size: 18,
-                      ),
-                      label: Text(
-                        nodeManager.isMoveMode ? "Exit Move" : "Move",
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-
-                    // 회전 모드 버튼
-                    ElevatedButton.icon(
-                      onPressed: onToggleRotateMode,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: nodeManager.isRotateMode ? Colors.purple : Colors.indigo,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      icon: Icon(
-                        nodeManager.isRotateMode ? Icons.cancel : Icons.rotate_right,
-                        size: 18,
-                      ),
-                      label: Text(
-                        nodeManager.isRotateMode ? "Exit Rotate" : "Rotate",
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ),
-                  ],
+                ElevatedButton.icon(
+                  onPressed: onToggleMoveMode,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: (nodeManager.isMoveMode ? Colors.orange : Colors.blue).withOpacity(0.8),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  icon: Icon(
+                    nodeManager.isMoveMode ? Icons.exit_to_app : Icons.open_with,
+                    size: 18,
+                  ),
+                  label: Text(
+                    nodeManager.isMoveMode ? "Exit Move" : "Move",
+                    style: const TextStyle(fontSize: 14),
+                  ),
                 ),
                 const SizedBox(height: 10),
               ],
@@ -370,7 +299,7 @@ class ControlButtonsWidget extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: onRemoveEverything,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[700],
+                      backgroundColor: Colors.red[700]?.withOpacity(0.8),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
@@ -380,7 +309,7 @@ class ControlButtonsWidget extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: onRemoveSelected,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: nodeManager.selectedNodeName != null ? Colors.red[500] : Colors.grey,
+                      backgroundColor: (nodeManager.selectedNodeName != null ? Colors.red[500] : Colors.grey)?.withOpacity(0.8),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),

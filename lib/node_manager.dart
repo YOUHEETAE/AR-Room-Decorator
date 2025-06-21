@@ -71,22 +71,6 @@ class NodeManager {
     print("노드 회전값 초기화: $nodeName = 0.0°");
   }
 
-  // 회전 기능 더미 메서드들 (3단계에서 구현 예정)
-  Future<bool> rotateNodeClockwise(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager) async {
-    print("시계방향 회전 (미구현)");
-    return false;
-  }
-
-  Future<bool> rotateNodeCounterClockwise(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager) async {
-    print("반시계방향 회전 (미구현)");
-    return false;
-  }
-
-  Future<bool> setNodeRotation(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager, double degrees) async {
-    print("회전 설정 (미구현): ${degrees}도");
-    return false;
-  }
-
   // 디버그
   void printNodeDebugInfo() {
     _state.printDebugInfo();
