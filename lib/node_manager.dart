@@ -1,4 +1,4 @@
-// node_manager.dart - 실제 회전 기능 구현된 버전 (반환 타입 수정)
+// node_manager.dart - 단순화된 버전 (메인 컨트롤러)
 import 'package:ar_flutter_plugin_2/models/ar_anchor.dart';
 import 'package:ar_flutter_plugin_2/models/ar_node.dart';
 import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
@@ -29,7 +29,7 @@ class NodeManager {
   String? get selectedNodeName => _state.selectedNodeName;
   String? get selectedTapId => _state.selectedTapId;
   bool get isMoveMode => _state.isMoveMode;
-  bool get isRotateMode => _state.isRotateMode;
+  bool get isRotateMode => _state.isRotateMode; // 회전 모드 접근자 추가
 
   // 노드 관리
   Future<void> removeEverything(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager) async {
@@ -61,7 +61,7 @@ class NodeManager {
     _selectionHandler.toggleRotateMode();
   }
 
-  // 회전 관련
+  // 회전 관련 (1단계)
   double getSelectedNodeRotation() {
     return _state.getSelectedNodeRotation();
   }
@@ -71,17 +71,20 @@ class NodeManager {
     print("노드 회전값 초기화: $nodeName = 0.0°");
   }
 
-  // 회전 기능 - 업데이트된 반환 타입 (Map<String, dynamic>)
-  Future<Map<String, dynamic>> rotateNodeClockwise(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager) async {
-    return await _operations.rotateNodeClockwise(arObjectManager, arAnchorManager);
+  // 회전 기능 더미 메서드들 (3단계에서 구현 예정)
+  Future<bool> rotateNodeClockwise(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager) async {
+    print("시계방향 회전 (미구현)");
+    return false;
   }
 
-  Future<Map<String, dynamic>> rotateNodeCounterClockwise(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager) async {
-    return await _operations.rotateNodeCounterClockwise(arObjectManager, arAnchorManager);
+  Future<bool> rotateNodeCounterClockwise(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager) async {
+    print("반시계방향 회전 (미구현)");
+    return false;
   }
 
-  Future<Map<String, dynamic>> setNodeRotation(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager, double degrees) async {
-    return await _operations.setNodeRotation(arObjectManager, arAnchorManager, degrees);
+  Future<bool> setNodeRotation(ARObjectManager? arObjectManager, ARAnchorManager? arAnchorManager, double degrees) async {
+    print("회전 설정 (미구현): ${degrees}도");
+    return false;
   }
 
   // 디버그
