@@ -1,4 +1,4 @@
-// node_state.dart - 노드 상태 관리
+// node_state.dart - 노드 상태 관리 (업데이트 메서드 추가)
 import 'package:ar_flutter_plugin_2/models/ar_anchor.dart';
 import 'package:ar_flutter_plugin_2/models/ar_node.dart';
 
@@ -42,6 +42,32 @@ class NodeState {
     nodeAnchorMap[node.name] = anchor;
     nodeMap[node.name] = node;
     nodeRotations[node.name] = 0.0;
+  }
+
+  // 🆕 노드 업데이트 (회전용)
+  bool updateNode(String nodeName, ARNode newNode) {
+    // 1. nodes 리스트에서 찾아서 교체
+    int nodeIndex = -1;
+    for (int i = 0; i < nodes.length; i++) {
+      if (nodes[i].name == nodeName) {
+        nodeIndex = i;
+        break;
+      }
+    }
+
+    if (nodeIndex != -1) {
+      nodes[nodeIndex] = newNode;
+      nodeMap[nodeName] = newNode;
+      print("✅ NodeState: 노드 업데이트 성공 (인덱스: $nodeIndex)");
+      return true;
+    } else {
+      // 못 찾으면 강제로 정리하고 새 노드 추가
+      nodes.removeWhere((node) => node.name == nodeName);
+      nodes.add(newNode);
+      nodeMap[nodeName] = newNode;
+      print("⚠️ NodeState: 강제로 노드 교체 완료");
+      return true;
+    }
   }
 
   // 노드 제거

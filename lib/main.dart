@@ -212,30 +212,44 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
     setState(() {});
   }
 
-  // 회전 액션 처리 (3단계에서 실제 구현)
+  // 회전 액션 처리 (실제 구현 완료)
   void _onRotationAction(String action) async {
     String message = "";
+    List<String> logs = [];
 
     switch (action) {
       case "clockwise":
-        bool success = await nodeManager.rotateNodeClockwise(arObjectManager, arAnchorManager);
-        message = success ? "시계방향 회전 완료" : "회전 실패 (미구현)";
+        var result = await nodeManager.rotateNodeClockwise(arObjectManager, arAnchorManager);
+        bool success = result["success"];
+        logs = List<String>.from(result["logs"]);
+        message = success
+            ? "시계방향 회전 완료 (${nodeManager.getSelectedNodeRotation().toStringAsFixed(1)}°)"
+            : "시계방향 회전 실패";
         break;
       case "counter_clockwise":
-        bool success = await nodeManager.rotateNodeCounterClockwise(arObjectManager, arAnchorManager);
-        message = success ? "반시계방향 회전 완료" : "회전 실패 (미구현)";
+        var result = await nodeManager.rotateNodeCounterClockwise(arObjectManager, arAnchorManager);
+        bool success = result["success"];
+        logs = List<String>.from(result["logs"]);
+        message = success
+            ? "반시계방향 회전 완료 (${nodeManager.getSelectedNodeRotation().toStringAsFixed(1)}°)"
+            : "반시계방향 회전 실패";
         break;
       case "reset":
-        bool success = await nodeManager.setNodeRotation(arObjectManager, arAnchorManager, 0.0);
-        message = success ? "회전 리셋 완료" : "회전 리셋 실패 (미구현)";
+        var result = await nodeManager.setNodeRotation(arObjectManager, arAnchorManager, 0.0);
+        bool success = result["success"];
+        logs = List<String>.from(result["logs"]);
+        message = success ? "회전 리셋 완료 (0°)" : "회전 리셋 실패";
         break;
     }
 
+    // 상세 로그를 디버그 메시지에 포함
+    String detailedMessage = message + "\n\n=== 상세 로그 ===\n" + logs.join("\n");
+
     setState(() {
-      debugMessage = message;
+      debugMessage = detailedMessage;
+      showDebug = true; // 자동으로 디버그 창 열기
     });
   }
-
   Future<void> _onRemoveEverything() async {
     await nodeManager.removeEverything(arObjectManager, arAnchorManager);
     if (mounted) setState(() => debugMessage = "모든 노드가 제거되었습니다.");

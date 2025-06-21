@@ -89,76 +89,76 @@ class RotationControlWidget extends StatelessWidget {
     }
 
     return Positioned(
-        top: 220,
-        left: 20,
-        right: 20,
-        child: Container(
+      top: 220,
+      left: 20,
+      right: 20,
+      child: Container(
         padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-    color: Colors.black87,
-    borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: Colors.purple.withOpacity(0.5)),
-    ),
-    child: Column(
-    children: [
-    const Text(
-    '회전 컨트롤',
-    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-    ),
-    const SizedBox(height: 12),
-    Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-    // 반시계방향 회전 버튼
-    ElevatedButton(
-    onPressed: () => onRotationAction("counter_clockwise"),
-    style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.purple,
-    shape: const CircleBorder(),
-    padding: const EdgeInsets.all(16),
-    ),
-    child: const Icon(Icons.rotate_left, color: Colors.white, size: 24),
-    ),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.purple.withOpacity(0.5)),
+        ),
+        child: Column(
+          children: [
+            const Text(
+              '회전 컨트롤',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // 반시계방향 회전 버튼
+                ElevatedButton(
+                  onPressed: () => onRotationAction("counter_clockwise"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  child: const Icon(Icons.rotate_left, color: Colors.white, size: 24),
+                ),
 
-    // 현재 회전값 표시
-    Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    decoration: BoxDecoration(
-    color: Colors.purple.withOpacity(0.2),
-    borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-    '${nodeManager.getSelectedNodeRotation().toStringAsFixed(0)}°',
-    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-    ),
-    ),
+                // 현재 회전값 표시
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${nodeManager.getSelectedNodeRotation().toStringAsFixed(0)}°',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
 
-    // 시계방향 회전 버튼
-    ElevatedButton(
-    onPressed: () => onRotationAction("clockwise"),
-    style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.purple,
-    shape: const CircleBorder(),
-    padding: const EdgeInsets.all(16),
-    ),
-    child: const Icon(Icons.rotate_right, color: Colors.white, size: 24),
-    ),
-    ],
-    ),
-    const SizedBox(height: 12),
+                // 시계방향 회전 버튼
+                ElevatedButton(
+                  onPressed: () => onRotationAction("clockwise"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  child: const Icon(Icons.rotate_right, color: Colors.white, size: 24),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
-    // 리셋 버튼
-    ElevatedButton(
-    onPressed: () => onRotationAction("reset"),
-    style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.grey[700],
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-    ),
-    child: const Text('리셋', style: TextStyle(color: Colors.white)),
-    ),
-    ],
-    ),
-    ),
+            // 리셋 버튼
+            ElevatedButton(
+              onPressed: () => onRotationAction("reset"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[700],
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              ),
+              child: const Text('리셋', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
