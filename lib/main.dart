@@ -1,4 +1,4 @@
-// main.dart - 회전 기능 제거된 롤백 버전
+// main.dart - 최신 노드 조작 방식으로 업데이트
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -10,10 +10,8 @@ import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
 import 'package:ar_flutter_plugin_2/widgets/ar_view.dart';
 import 'package:flutter/material.dart';
 
-import 'node_manager.dart';
+import 'latest_node_manager.dart'; // 새로운 매니저 import
 import 'ar_model_factory.dart';
-import 'ar_widgets.dart';
-import 'ar_dialogs.dart';
 
 void main() {
   runApp(const MyApp());
@@ -98,7 +96,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
   ARObjectManager? arObjectManager;
   ARAnchorManager? arAnchorManager;
 
-  final NodeManager nodeManager = NodeManager();
+  final LatestNodeManager nodeManager = LatestNodeManager(); // 새로운 매니저 사용
   bool isARInitialized = false;
   String debugMessage = "";
   bool showDebug = false;
@@ -127,34 +125,275 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
           ),
 
           // AR 초기화 로딩
-          ARLoadingWidget(isARInitialized: isARInitialized),
+          if (!isARInitialized)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 16),
+                    Text(
+                      'AR 초기화 중...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
-          // 선택된 노드 정보
-          SelectedNodeInfoWidget(nodeManager: nodeManager),
+          // 활성 노드 정보 표시
+          if (nodeManager.hasActiveNode)
+            Positioned(
+              top: 100,
+              left: 20,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black87.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🎯 활성 노드: ${nodeManager.activeNodeName}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '총 ${nodeManager.totalNodes}개 노드',
+                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // 이동 모드 표시
+                    if (nodeManager.isMoveMode)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          '🚀 이동 모드 - 평면을 탭하세요',
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
 
           // 사용법 안내
-          InstructionsWidget(
-            isARInitialized: isARInitialized,
-            nodeManager: nodeManager,
-            showDebug: showDebug,
-          ),
+          if (isARInitialized && nodeManager.totalNodes == 0 && !showDebug)
+            Positioned(
+              top: 120,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.touch_app, color: Colors.white, size: 40),
+                    SizedBox(height: 8),
+                    Text(
+                      '시작하기',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '평면을 탭해서 가구를 배치해보세요!\n가장 최근에 추가한 가구를 조작할 수 있습니다.',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // 디버그 정보
-          DebugInfoWidget(
-            showDebug: showDebug,
-            nodeManager: nodeManager,
-            debugMessage: debugMessage,
-            onClose: () => setState(() => showDebug = false),
-          ),
+          if (showDebug)
+            Positioned(
+              top: 220,
+              left: 20,
+              right: 20,
+              bottom: 200,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withOpacity(0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '🔍 Debug Log:',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => showDebug = false),
+                          icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Total Nodes: ${nodeManager.totalNodes}\n'
+                                    'Active Node: ${nodeManager.activeNodeName}\n'
+                                    'Move Mode: ${nodeManager.isMoveMode}',
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (debugMessage.isNotEmpty) ...[
+                              const Text(
+                                '📋 상세 로그:',
+                                style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[900],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                                ),
+                                child: Text(
+                                  debugMessage,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // 컨트롤 버튼들
-          ControlButtonsWidget(
-            nodeManager: nodeManager,
-            showDebug: showDebug,
-            onToggleDebug: _toggleDebug,
-            onToggleMoveMode: _toggleMoveMode,
-            onRemoveEverything: _onRemoveEverything,
-            onRemoveSelected: nodeManager.selectedNodeName != null ? _onRemoveSelected : null,
+          Align(
+            alignment: FractionalOffset.bottomCenter,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 디버그 토글
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          showDebug = !showDebug;
+                          nodeManager.printStatus();
+                        });
+                      },
+                      icon: Icon(showDebug ? Icons.visibility_off : Icons.bug_report, size: 16),
+                      label: Text(showDebug ? "Hide Debug" : "Show Debug"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[800]?.withOpacity(0.7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // 이동 버튼 (활성 노드가 있을 때만)
+                    if (nodeManager.hasActiveNode) ...[
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          nodeManager.toggleMoveMode();
+                          setState(() {});
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: (nodeManager.isMoveMode ? Colors.orange : Colors.blue).withOpacity(0.8),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        icon: Icon(
+                          nodeManager.isMoveMode ? Icons.exit_to_app : Icons.open_with,
+                          size: 18,
+                        ),
+                        label: Text(
+                          nodeManager.isMoveMode ? "Exit Move" : "Move Active",
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+
+                    // 삭제 버튼들
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            await nodeManager.removeAllNodes(arObjectManager, arAnchorManager);
+                            setState(() {
+                              debugMessage = "모든 노드 삭제 완료";
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[700]?.withOpacity(0.8),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.clear_all, size: 18),
+                          label: const Text("Remove All"),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: nodeManager.hasActiveNode ? () async {
+                            String result = await nodeManager.removeActiveNode(arObjectManager, arAnchorManager);
+                            setState(() {
+                              debugMessage = result;
+                              showDebug = true;
+                            });
+                          } : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: (nodeManager.hasActiveNode ? Colors.red[500] : Colors.grey)?.withOpacity(0.8),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.delete, size: 18),
+                          label: const Text("Remove Active"),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -181,45 +420,11 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
     this.arObjectManager!.onInitialize();
 
     this.arSessionManager!.onPlaneOrPointTap = onPlaneOrPointTapped;
-    this.arObjectManager!.onNodeTap = onNodeTapped;
+    // onNodeTap은 더 이상 사용하지 않음 (매핑 문제로 인해)
 
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) setState(() => isARInitialized = true);
     });
-  }
-
-  void _toggleDebug() {
-    setState(() {
-      showDebug = !showDebug;
-      debugMessage = "Nodes: ${nodeManager.nodes.map((n) => n.name).join(', ')}\nSelected: ${nodeManager.selectedNodeName}";
-    });
-  }
-
-  void _toggleMoveMode() {
-    nodeManager.toggleMoveMode();
-    setState(() {});
-  }
-
-  Future<void> _onRemoveEverything() async {
-    await nodeManager.removeEverything(arObjectManager, arAnchorManager);
-    if (mounted) setState(() => debugMessage = "모든 노드가 제거되었습니다.");
-  }
-
-  Future<void> _onRemoveSelected() async {
-    String result = await nodeManager.removeSelected(arObjectManager, arAnchorManager);
-    if (mounted) setState(() {
-      debugMessage = result;
-      showDebug = true;
-    });
-  }
-
-  Future<void> onNodeTapped(List<String> nodeNames) async {
-    if (nodeNames.isNotEmpty && mounted) {
-      String result = nodeManager.handleNodeTap(nodeNames);
-      setState(() => debugMessage = result);
-
-      ARDialogs.showNodeSelectedDialog(context, nodeManager, nodeNames.first, nodeNames);
-    }
   }
 
   Future<void> onPlaneOrPointTapped(List<ARHitTestResult> hitTestResults) async {
@@ -230,15 +435,18 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
       );
 
       if (singleHitTestResult != null) {
-        // 이동 모드일 때는 노드 이동
-        if (nodeManager.isMoveMode && nodeManager.selectedNodeName != null) {
-          bool success = await nodeManager.moveNodeToPosition(
-              arObjectManager, arAnchorManager, singleHitTestResult);
+        // 이동 모드일 때는 활성 노드 이동
+        if (nodeManager.isMoveMode && nodeManager.hasActiveNode) {
+          bool success = await nodeManager.moveActiveNode(
+              arObjectManager,
+              arAnchorManager,
+              singleHitTestResult
+          );
 
           setState(() {
             debugMessage = success
-                ? "노드 이동 완료: ${nodeManager.selectedNodeName}"
-                : "노드 이동 실패";
+                ? "✅ 노드 이동 완료: ${nodeManager.activeNodeName}"
+                : "❌ 노드 이동 실패";
           });
           return;
         }
@@ -249,7 +457,7 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
     } catch (e) {
       print("Error in onPlaneOrPointTapped: $e");
       if (mounted) {
-        ARDialogs.showErrorDialog(context, "가구 배치 중 오류 발생: $e");
+        _showErrorDialog("가구 배치 중 오류 발생: $e");
       }
     }
   }
@@ -263,20 +471,38 @@ class _ObjectsOnPlanesState extends State<ObjectsOnPlanes> {
       bool? didAddNodeToAnchor = await arObjectManager?.addNode(newNode, planeAnchor: newAnchor);
 
       if (didAddNodeToAnchor == true) {
-        nodeManager.nodes.add(newNode);
-        nodeManager.nodeAnchorMap[newNode.name] = newAnchor;
-        nodeManager.nodeMap[newNode.name] = newNode;
-        nodeManager.initializeNodeRotation(newNode.name);
-        print("Node added successfully: ${newNode.name}");
+        nodeManager.addNode(newNode, newAnchor);
 
         setState(() {
-          debugMessage = "새 가구 추가됨: ${newNode.name}\n총 가구 수: ${nodeManager.nodes.length}";
+          debugMessage = "✅ 새 가구 추가: ${newNode.name}\n🎯 활성 노드: ${nodeManager.activeNodeName}\n총 ${nodeManager.totalNodes}개";
         });
       } else {
-        if (mounted) ARDialogs.showErrorDialog(context, "앵커에 노드 추가 실패");
+        if (mounted) _showErrorDialog("앵커에 노드 추가 실패");
       }
     } else {
-      if (mounted) ARDialogs.showErrorDialog(context, "앵커 추가 실패");
+      if (mounted) _showErrorDialog("앵커 추가 실패");
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.error, color: Colors.red),
+            SizedBox(width: 8),
+            Text("오류"),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("확인"),
+          ),
+        ],
+      ),
+    );
   }
 }
