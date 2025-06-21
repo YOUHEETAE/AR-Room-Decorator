@@ -12,7 +12,7 @@ class ARModelFactory {
       uri: "https://github.com/KhronosGroup/glTF-Sample-Models/raw/refs/heads/main/2.0/Duck/glTF-Binary/Duck.glb",
       scale: vm.Vector3(0.2, 0.2, 0.2),
       position: vm.Vector3(0.0, 0.0, 0.0),
-      rotation: vm.Vector4(1.0, 0.0, 0.0, 0.0), // Vector4로 되돌림
+      rotation: vm.Vector4(1.0, 0.0, 0.0, 0.0),
       name: nodeName,
     );
   }
