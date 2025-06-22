@@ -1,3 +1,4 @@
+// lib/ar_furniture_screen.dart - 플로팅 컨트롤 적용됨
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -87,7 +88,7 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
     return WillPopScope(
       onWillPop: navigationHandler.handleBackPress,
       child: Scaffold(
-        appBar: ARAppBar(onBackPressed: navigationHandler.navigateBack),
+        // appBar 완전 제거
         body: FurnitureSelectorController(
           builder: (selectedFurniture, onFurnitureSelected) {
             this.selectedFurniture = selectedFurniture;
@@ -119,25 +120,38 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
                     },
                   ),
 
-                  // 활성 노드 정보
-                  if (nodeManager.hasActiveNode)
-                    ARActiveNodeInfo(
-                      nodeManager: nodeManager,
-                      selectedFurniture: selectedFurniture,
-                    ),
-
                   // 사용법 안내
                   if (nodeManager.totalNodes == 0)
                     ARUsageGuide(selectedFurniture: selectedFurniture),
 
-                  // 하단 컨트롤
-                  ARBottomControls(
+                  // 고정 위치 컨트롤 시스템
+                  ARSimpleBottomControls(
                     nodeManager: nodeManager,
                     isARInitialized: isARInitialized,
                     onScreenshot: () => screenshotHandler.takeScreenshot(arSessionManager),
                     onToggleMove: () {
                       nodeManager.toggleMoveMode();
                       setState(() {});
+                    },
+                    onToggleScale: () {
+                      nodeManager.toggleScaleMode();
+                      setState(() {});
+                    },
+                    onScaleUp: () async {
+                      bool success = await nodeManager.scaleUp(arObjectManager, arAnchorManager);
+                      if (success && mounted) {
+                        setState(() {});
+                      } else {
+                        _showErrorDialog("크기 조절에 실패했습니다.");
+                      }
+                    },
+                    onScaleDown: () async {
+                      bool success = await nodeManager.scaleDown(arObjectManager, arAnchorManager);
+                      if (success && mounted) {
+                        setState(() {});
+                      } else {
+                        _showErrorDialog("크기 조절에 실패했습니다.");
+                      }
                     },
                     onRemoveAll: () async {
                       await nodeManager.removeAllNodes(arObjectManager, arAnchorManager);

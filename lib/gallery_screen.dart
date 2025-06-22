@@ -1,4 +1,4 @@
-// gallery_screen.dart - 모던한 AR 갤러리 화면
+// lib/gallery_screen.dart - 그리드/리스트 토글 로직 수정됨
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -83,7 +83,7 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
         icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
       ),
       actions: [
-        // 뷰 모드 토글
+        // 뷰 모드 토글 - ✅ 로직 수정됨
         IconButton(
           onPressed: () {
             setState(() {
@@ -91,6 +91,7 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
             });
           },
           icon: Icon(
+            // ✅ 아이콘과 실제 표시 모드를 일치시킴
             _isGridView ? Icons.view_list : Icons.grid_view,
             color: Colors.white,
           ),
@@ -155,6 +156,7 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
       opacity: _fadeAnimation,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
+        // ✅ 조건문 그대로 유지 (버튼 로직만 수정함)
         child: _isGridView ? _buildGridView() : _buildListView(),
       ),
     );

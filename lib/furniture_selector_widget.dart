@@ -1,4 +1,4 @@
-// furniture_selector_widget.dart - 상단 가구 선택 UI 컴포넌트
+// lib/furniture_selector_widget.dart - 동그라미 아이콘만 남긴 깔끔한 가구 선택기
 import 'package:flutter/material.dart';
 import 'furniture_data.dart';
 
@@ -39,58 +39,33 @@ class _FurnitureSelectorWidgetState extends State<FurnitureSelectorWidget> {
     final totalPages = (allFurniture.length / 5).ceil();
 
     return Container(
-      height: 140,
+      height: 100, // 높이 줄임 (사각형 배경 제거했으므로)
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Column(
         children: [
-          // 헤더
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '가구 선택',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                // 페이지 인디케이터
-                if (totalPages > 1)
-                  Row(
-                    children: List.generate(totalPages, (index) {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _currentPage == index
-                              ? Colors.blue
-                              : Colors.grey.withOpacity(0.3),
-                        ),
-                      );
-                    }),
-                  ),
-              ],
+          // 페이지 인디케이터 (위쪽으로 이동)
+          if (totalPages > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(totalPages, (index) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _currentPage == index
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.3),
+                    ),
+                  );
+                }),
+              ),
             ),
-          ),
 
-          // 가구 그리드
+          // 가구 아이콘들 (동그라미만)
           Expanded(
             child: PageView.builder(
               controller: _pageController,
@@ -117,7 +92,7 @@ class _FurnitureSelectorWidgetState extends State<FurnitureSelectorWidget> {
     final pageItems = allFurniture.sublist(startIndex, endIndex);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -146,13 +121,14 @@ class _FurnitureSelectorWidgetState extends State<FurnitureSelectorWidget> {
         height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
+          // 사각형 배경 제거, 동그라미만 유지
           color: isSelected
               ? furniture.category.color.withOpacity(0.2)
-              : Colors.grey.withOpacity(0.1),
+              : Colors.white.withOpacity(0.1),
           border: Border.all(
             color: isSelected
                 ? furniture.category.color
-                : Colors.grey.withOpacity(0.3),
+                : Colors.white.withOpacity(0.3),
             width: isSelected ? 2.5 : 1,
           ),
           boxShadow: isSelected
@@ -163,18 +139,22 @@ class _FurnitureSelectorWidgetState extends State<FurnitureSelectorWidget> {
               spreadRadius: 2,
             ),
           ]
-              : null,
+              : [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              spreadRadius: 1,
+            ),
+          ],
         ),
         child: Center(
-          child: _buildFurnitureIcon(furniture),
+          child: _buildFurnitureIcon(furniture, isSelected),
         ),
       ),
     );
   }
 
-  Widget _buildFurnitureIcon(FurnitureItem furniture) {
-    final isSelected = widget.selectedFurniture?.id == furniture.id;
-
+  Widget _buildFurnitureIcon(FurnitureItem furniture, bool isSelected) {
     // 실제 썸네일 이미지가 있다면 사용, 없으면 아이콘 사용
     return FutureBuilder<bool>(
       future: _checkThumbnailExists(furniture.thumbnailPath),
@@ -206,7 +186,7 @@ class _FurnitureSelectorWidgetState extends State<FurnitureSelectorWidget> {
       size: 28,
       color: isSelected
           ? furniture.category.color
-          : Colors.grey[600],
+          : Colors.white.withOpacity(0.9),
     );
   }
 
