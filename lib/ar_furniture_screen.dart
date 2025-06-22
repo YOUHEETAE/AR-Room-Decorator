@@ -1,4 +1,4 @@
-// ar_furniture_screen.dart - 안전한 뒤로가기가 있는 AR 가구 배치 화면
+// ar_furniture_screen.dart
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -10,13 +10,12 @@ import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
 import 'package:ar_flutter_plugin_2/widgets/ar_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:permission_handler/permission_handler.dart';
 
-import '../latest_node_manager.dart';
+import '../simplified_node_manager.dart';
 import '../ar_model_factory.dart';
 import '../furniture_data.dart';
 import '../furniture_selector_widget.dart';

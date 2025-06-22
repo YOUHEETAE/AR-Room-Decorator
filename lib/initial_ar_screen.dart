@@ -1,4 +1,4 @@
-// modern_initial_ar_screen.dart - 모던한 디자인의 초기 AR 시작 화면
+// initial_ar_screen.dart - 모던한 디자인의 초기 AR 시작 화면
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'ar_furniture_screen.dart';
