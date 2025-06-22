@@ -1,4 +1,4 @@
-// simplified_node_manager.dart - 회전 기능 제거, 이동 기능만 유지
+// simplified_node_manager.dart - 깔끔한 노드 관리자
 import 'package:ar_flutter_plugin_2/models/ar_anchor.dart';
 import 'package:ar_flutter_plugin_2/models/ar_node.dart';
 import 'package:ar_flutter_plugin_2/models/ar_hittest_result.dart';
@@ -20,16 +20,18 @@ class SimplifiedNodeManager {
   // 모드 상태 (이동만)
   bool _isMoveMode = false;
 
-  String _lastActionLog = "";
-
   // Getters
   List<ARNode> get nodes => List.unmodifiable(_nodes);
+
   ARNode? get activeNode => _currentActiveNode;
+
   bool get isMoveMode => _isMoveMode;
+
   bool get hasActiveNode => _currentActiveNode != null;
+
   String get activeNodeName => _currentActiveNode?.name ?? "없음";
+
   int get totalNodes => _nodes.length;
-  String get lastActionLog => _lastActionLog;
 
   // 새 노드 추가
   void addNode(ARNode node, ARAnchor anchor) {
@@ -41,18 +43,13 @@ class SimplifiedNodeManager {
     // 새로 추가된 노드가 활성 노드가 됨
     _currentActiveNode = node;
     _currentActiveAnchor = anchor;
-
-    _lastActionLog = "✅ 새 노드 추가: ${node.name} (총 ${_nodes.length}개)\n🎯 활성 노드: ${_currentActiveNode?.name}";
-    print(_lastActionLog);
   }
 
   // 활성 노드 삭제
-  Future<String> removeActiveNode(
-      ARObjectManager? arObjectManager,
-      ARAnchorManager? arAnchorManager
-      ) async {
+  Future<String> removeActiveNode(ARObjectManager? arObjectManager,
+      ARAnchorManager? arAnchorManager) async {
     if (_currentActiveNode == null) {
-      return "❌ 삭제할 노드가 없습니다";
+      return "삭제할 노드가 없습니다";
     }
 
     try {
@@ -80,31 +77,27 @@ class SimplifiedNodeManager {
 
       _isMoveMode = false; // 삭제 후 이동 모드 해제
 
-      String result = "✅ '$removedName' 삭제 완료!";
+      String result = "'$removedName' 삭제 완료!";
       if (_currentActiveNode != null) {
-        result += "\n🎯 새 활성 노드: ${_currentActiveNode!.name}";
+        result += "\n새 활성 노드: ${_currentActiveNode!.name}";
       } else {
-        result += "\n📝 모든 노드가 삭제되었습니다";
+        result += "\n모든 노드가 삭제되었습니다";
       }
 
-      print(result);
       return result;
-
     } catch (e) {
-      return "❌ 삭제 실패: $e";
+      return "삭제 실패: $e";
     }
   }
 
   // 모든 노드 삭제
-  Future<void> removeAllNodes(
-      ARObjectManager? arObjectManager,
-      ARAnchorManager? arAnchorManager
-      ) async {
+  Future<void> removeAllNodes(ARObjectManager? arObjectManager,
+      ARAnchorManager? arAnchorManager) async {
     for (var node in [..._nodes]) {
       try {
         await arObjectManager?.removeNode(node);
       } catch (e) {
-        print("노드 삭제 오류: $e");
+        // 에러 무시하고 계속 진행
       }
     }
 
@@ -112,7 +105,7 @@ class SimplifiedNodeManager {
       try {
         await arAnchorManager?.removeAnchor(anchor);
       } catch (e) {
-        print("앵커 삭제 오류: $e");
+        // 에러 무시하고 계속 진행
       }
     }
 
@@ -123,30 +116,23 @@ class SimplifiedNodeManager {
     _currentActiveNode = null;
     _currentActiveAnchor = null;
     _isMoveMode = false;
-
-    print("🧹 모든 노드 삭제 완료");
   }
 
   // 이동 모드 토글
   void toggleMoveMode() {
     if (_currentActiveNode == null) {
-      _lastActionLog = "❌ 이동할 노드가 없습니다";
-      print(_lastActionLog);
       return;
     }
 
     _isMoveMode = !_isMoveMode;
-    _lastActionLog = "${_isMoveMode ? '🚀' : '⏹️'} 이동 모드: ${_isMoveMode ? 'ON' : 'OFF'} (${_currentActiveNode!.name})";
-    print(_lastActionLog);
   }
 
   // 활성 노드 이동
-  Future<bool> moveActiveNode(
-      ARObjectManager? arObjectManager,
+  Future<bool> moveActiveNode(ARObjectManager? arObjectManager,
       ARAnchorManager? arAnchorManager,
-      ARHitTestResult hitResult,
-      ) async {
-    if (!_isMoveMode || _currentActiveNode == null || _currentActiveAnchor == null) {
+      ARHitTestResult hitResult,) async {
+    if (!_isMoveMode || _currentActiveNode == null ||
+        _currentActiveAnchor == null) {
       return false;
     }
 
@@ -174,44 +160,13 @@ class SimplifiedNodeManager {
           _currentActiveAnchor = newAnchor;
 
           _isMoveMode = false;
-          _lastActionLog = "✅ 노드 이동 완료: ${_currentActiveNode!.name}";
-          print(_lastActionLog);
           return true;
         }
       }
 
-      _lastActionLog = "❌ 노드 이동 실패";
-      print(_lastActionLog);
       return false;
     } catch (e) {
-      _lastActionLog = "❌ 이동 중 오류: $e";
-      print(_lastActionLog);
       return false;
     }
-  }
-
-  // 디버그 정보
-  void printStatus() {
-    print("=== 노드 매니저 상태 ===");
-    print("총 노드 수: ${_nodes.length}");
-    print("활성 노드: ${_currentActiveNode?.name ?? '없음'}");
-    print("이동 모드: $_isMoveMode");
-    print("노드 목록:");
-    for (int i = 0; i < _nodes.length; i++) {
-      String marker = _nodes[i] == _currentActiveNode ? "🎯" : "  ";
-      print("$marker ${i + 1}. ${_nodes[i].name}");
-    }
-    print("=====================");
-  }
-}
-
-// Vector3에 소수점 자르기 위한 확장 메서드
-extension Vector3Extension on vm.Vector3 {
-  vm.Vector3 roundToDecimals(int decimals) {
-    return vm.Vector3(
-      double.parse(x.toStringAsFixed(decimals)),
-      double.parse(y.toStringAsFixed(decimals)),
-      double.parse(z.toStringAsFixed(decimals)),
-    );
   }
 }

@@ -1,4 +1,4 @@
-// simplified_ar_furniture_screen.dart - AR 가구 배치 메인 화면 (회전 기능 제거)
+// ar_furniture_screen.dart - 깔끔한 AR 가구 배치 화면
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 
 import '../latest_node_manager.dart';
 import '../ar_model_factory.dart';
+import '../furniture_data.dart';
+import '../furniture_selector_widget.dart';
 
 class SimplifiedARFurnitureScreen extends StatefulWidget {
   const SimplifiedARFurnitureScreen({super.key});
@@ -26,9 +28,10 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
   ARAnchorManager? arAnchorManager;
 
   final SimplifiedNodeManager nodeManager = SimplifiedNodeManager();
+  final FurnitureDataManager furnitureManager = FurnitureDataManager();
+
   bool isARInitialized = false;
-  String debugMessage = "";
-  bool showDebug = false;
+  FurnitureItem? selectedFurniture;
 
   @override
   void dispose() {
@@ -45,309 +48,218 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
         elevation: 0,
         foregroundColor: Colors.white,
       ),
-      body: Stack(
-        children: [
-          // AR 뷰
-          ARView(
-            onARViewCreated: onARViewCreated,
-            planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
-          ),
+      body: FurnitureSelectorController(
+        builder: (selectedFurniture, onFurnitureSelected) {
+          this.selectedFurniture = selectedFurniture;
 
-          // AR 초기화 로딩
-          if (!isARInitialized)
-            Container(
-              color: Colors.black54,
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
-                    Text(
-                      'AR 초기화 중...',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ],
-                ),
+          return Stack(
+            children: [
+              // AR 뷰
+              ARView(
+                onARViewCreated: onARViewCreated,
+                planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
               ),
-            ),
 
-          // 활성 노드 정보 표시
-          if (nodeManager.hasActiveNode)
-            Positioned(
-              top: 100,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black87.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '🎯 활성 노드: ${nodeManager.activeNodeName}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '총 ${nodeManager.totalNodes}개 노드',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // 실시간 액션 로그 표시
-                    if (nodeManager.lastActionLog.isNotEmpty) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          nodeManager.lastActionLog,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-
-                    // 이동 모드 표시
-                    if (nodeManager.isMoveMode)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '🚀 이동 모드 - 평면을 탭하세요',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-          // 사용법 안내
-          if (isARInitialized && nodeManager.totalNodes == 0 && !showDebug)
-            Positioned(
-              top: 120,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(Icons.touch_app, color: Colors.white, size: 40),
-                    SizedBox(height: 8),
-                    Text(
-                      '시작하기',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '평면을 탭해서 가구를 배치해보세요!\n가장 최근에 추가한 가구를 이동할 수 있습니다.',
-                      style: TextStyle(color: Colors.white, fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // 디버그 정보
-          if (showDebug)
-            Positioned(
-              top: 220,
-              left: 20,
-              right: 20,
-              bottom: 200,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withOpacity(0.5)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // AR 초기화 로딩
+              if (!isARInitialized)
+                Container(
+                  color: Colors.black54,
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          '🔍 Debug Log:',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() => showDebug = false),
-                          icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                          padding: EdgeInsets.zero,
+                        CircularProgressIndicator(color: Colors.white),
+                        SizedBox(height: 16),
+                        Text(
+                          'AR 초기화 중...',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                ),
+
+              // 가구 선택 UI (상단)
+              if (isARInitialized)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    child: FurnitureSelectorWidget(
+                      selectedFurniture: selectedFurniture,
+                      onFurnitureSelected: (furniture) {
+                        onFurnitureSelected(furniture);
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                ),
+
+              // 활성 노드 정보 표시
+              if (nodeManager.hasActiveNode && isARInitialized)
+                Positioned(
+                  top: 160,
+                  left: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black87.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Total Nodes: ${nodeManager.totalNodes}\n'
-                                    'Active Node: ${nodeManager.activeNodeName}\n'
-                                    'Move Mode: ${nodeManager.isMoveMode}',
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                              ),
+                            Icon(
+                              selectedFurniture?.category.icon ?? Icons.chair,
+                              color: selectedFurniture?.category.color ?? Colors.white,
+                              size: 16,
                             ),
-                            const SizedBox(height: 12),
-                            if (debugMessage.isNotEmpty) ...[
-                              const Text(
-                                '📋 상세 로그:',
-                                style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[900],
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                                ),
-                                child: Text(
-                                  debugMessage,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ],
+                            const SizedBox(width: 8),
+                            Text(
+                              '활성 가구: ${selectedFurniture?.id ?? "없음"}',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
-                      ),
+                        Text(
+                          '총 ${nodeManager.totalNodes}개 배치됨',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+
+                        // 이동 모드 표시
+                        if (nodeManager.isMoveMode) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '이동 모드 - 평면을 탭하세요',
+                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-          // 컨트롤 버튼들
-          Align(
-            alignment: FractionalOffset.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 디버그 토글
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          showDebug = !showDebug;
-                          nodeManager.printStatus();
-                        });
-                      },
-                      icon: Icon(showDebug ? Icons.visibility_off : Icons.bug_report, size: 16),
-                      label: Text(showDebug ? "Hide Debug" : "Show Debug"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[800]?.withOpacity(0.7),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      ),
+              // 사용법 안내
+              if (isARInitialized && nodeManager.totalNodes == 0)
+                Positioned(
+                  top: 200,
+                  left: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white24),
                     ),
-                    const SizedBox(height: 10),
-
-                    // 이동 버튼 (활성 노드가 있을 때만)
-                    if (nodeManager.hasActiveNode) ...[
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          nodeManager.toggleMoveMode();
-                          setState(() {});
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: (nodeManager.isMoveMode ? Colors.orange : Colors.blue).withOpacity(0.8),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        icon: Icon(
-                          nodeManager.isMoveMode ? Icons.exit_to_app : Icons.open_with,
-                          size: 18,
-                        ),
-                        label: Text(
-                          nodeManager.isMoveMode ? "Exit Move" : "Move Furniture",
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-
-                    // 삭제 버튼들
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    child: Column(
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            await nodeManager.removeAllNodes(arObjectManager, arAnchorManager);
-                            setState(() {
-                              debugMessage = "모든 노드 삭제 완료";
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[700]?.withOpacity(0.8),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          ),
-                          icon: const Icon(Icons.clear_all, size: 18),
-                          label: const Text("Remove All"),
+                        Icon(
+                          selectedFurniture?.category.icon ?? Icons.touch_app,
+                          color: Colors.white,
+                          size: 40,
                         ),
-                        ElevatedButton.icon(
-                          onPressed: nodeManager.hasActiveNode ? () async {
-                            String result = await nodeManager.removeActiveNode(arObjectManager, arAnchorManager);
-                            setState(() {
-                              debugMessage = result;
-                              showDebug = true;
-                            });
-                          } : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: (nodeManager.hasActiveNode ? Colors.red[500] : Colors.grey)?.withOpacity(0.8),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          ),
-                          icon: const Icon(Icons.delete, size: 18),
-                          label: const Text("Remove Active"),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '시작하기',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          '위에서 원하는 가구를 선택하고\n평면을 탭해서 배치해보세요!',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
-                  ],
+                  ),
+                ),
+
+              // 컨트롤 버튼들
+              Align(
+                alignment: FractionalOffset.bottomCenter,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 이동 버튼 (활성 노드가 있을 때만)
+                        if (nodeManager.hasActiveNode) ...[
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              nodeManager.toggleMoveMode();
+                              setState(() {});
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: (nodeManager.isMoveMode ? Colors.orange : Colors.blue).withOpacity(0.8),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            ),
+                            icon: Icon(
+                              nodeManager.isMoveMode ? Icons.exit_to_app : Icons.open_with,
+                              size: 18,
+                            ),
+                            label: Text(
+                              nodeManager.isMoveMode ? "이동 완료" : "가구 이동",
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+
+                        // 삭제 버튼들
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                await nodeManager.removeAllNodes(arObjectManager, arAnchorManager);
+                                setState(() {});
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red[700]?.withOpacity(0.8),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                              icon: const Icon(Icons.clear_all, size: 18),
+                              label: const Text("전체 삭제"),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: nodeManager.hasActiveNode ? () async {
+                                await nodeManager.removeActiveNode(arObjectManager, arAnchorManager);
+                                setState(() {});
+                              } : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: (nodeManager.hasActiveNode ? Colors.red[500] : Colors.grey)?.withOpacity(0.8),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                              icon: const Icon(Icons.delete, size: 18),
+                              label: const Text("선택 삭제"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -395,21 +307,18 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
               singleHitTestResult
           );
 
-          setState(() {
-            debugMessage = success
-                ? "✅ 노드 이동 완료: ${nodeManager.activeNodeName}"
-                : "❌ 노드 이동 실패";
-          });
+          if (success) {
+            setState(() {});
+          }
           return;
         }
 
-        // 일반 모드일 때는 새 노드 추가
+        // 일반 모드일 때는 새 노드 추가 (선택된 가구로)
         await _addNewNode(singleHitTestResult);
       }
     } catch (e) {
-      print("Error in onPlaneOrPointTapped: $e");
       if (mounted) {
-        _showErrorDialog("가구 배치 중 오류 발생: $e");
+        _showErrorDialog("가구 배치 중 오류가 발생했습니다.");
       }
     }
   }
@@ -419,20 +328,18 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
     bool? didAddAnchor = await arAnchorManager?.addAnchor(newAnchor);
 
     if (didAddAnchor == true) {
-      var newNode = ARModelFactory.createDuckNode();
+      // 선택된 가구로 노드 생성
+      var newNode = ARModelFactory.createSelectedFurnitureNode();
       bool? didAddNodeToAnchor = await arObjectManager?.addNode(newNode, planeAnchor: newAnchor);
 
       if (didAddNodeToAnchor == true) {
         nodeManager.addNode(newNode, newAnchor);
-
-        setState(() {
-          debugMessage = "✅ 새 가구 추가: ${newNode.name}\n🎯 활성 노드: ${nodeManager.activeNodeName}\n총 ${nodeManager.totalNodes}개";
-        });
+        setState(() {});
       } else {
-        if (mounted) _showErrorDialog("앵커에 노드 추가 실패");
+        if (mounted) _showErrorDialog("가구 배치에 실패했습니다.");
       }
     } else {
-      if (mounted) _showErrorDialog("앵커 추가 실패");
+      if (mounted) _showErrorDialog("위치 설정에 실패했습니다.");
     }
   }
 

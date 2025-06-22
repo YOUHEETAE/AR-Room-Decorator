@@ -34,4 +34,5 @@ flutter:
   assets:
     - assets/models/
     - assets/videos/background.mp4
+    - assets/images/thumbnails/
 
