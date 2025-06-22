@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'ar_furniture_screen.dart';
 
+import 'gallery_screen.dart';
+
 class ModernInitialARScreen extends StatefulWidget {
   const ModernInitialARScreen({super.key});
 
@@ -302,7 +304,12 @@ class _ModernInitialARScreenState extends State<ModernInitialARScreen>
                                           icon: Icons.photo_library_outlined,
                                           label: '갤러리',
                                           onTap: () {
-                                            // 갤러리 기능
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => const ModernGalleryScreen(),
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
