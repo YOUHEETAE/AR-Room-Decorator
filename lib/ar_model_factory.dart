@@ -12,8 +12,8 @@ class ARModelFactory {
     String nodeName = "node_${uuid.v4()}";
 
     return ARNode(
-      type: NodeType.webGLB,
-      uri: "https://github.com/KhronosGroup/glTF-Sample-Models/raw/refs/heads/main/2.0/Avocado/glTF-Binary/Avocado.glb",
+      type: NodeType.localGLTF2,
+      uri:  "assets/models/basic_chair.glb",
       scale: vm.Vector3(0.2, 0.2, 0.2),
       position: vm.Vector3.zero(),
       rotation: vm.Vector4(1.0, 0.0, 0.0, 0.0),
