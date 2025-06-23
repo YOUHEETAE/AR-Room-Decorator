@@ -1,4 +1,4 @@
-// initial_ar_screen.dart - 모던한 디자인의 초기 AR 시작 화면
+// initial_ar_screen.dart - 설정 버튼 제거됨
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'ar_furniture_screen.dart';
@@ -296,34 +296,18 @@ class _ModernInitialARScreenState extends State<ModernInitialARScreen>
 
                                   const SizedBox(height: 16),
 
-                                  // 보조 버튼들
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildSecondaryButton(
-                                          icon: Icons.photo_library_outlined,
-                                          label: '갤러리',
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => const ModernGalleryScreen(),
-                                              ),
-                                            );
-                                          },
+                                  // 갤러리 버튼만 (설정 버튼 제거됨)
+                                  _buildSecondaryButton(
+                                    icon: Icons.photo_library_outlined,
+                                    label: '갤러리',
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const ModernGalleryScreen(),
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildSecondaryButton(
-                                          icon: Icons.settings_outlined,
-                                          label: '설정',
-                                          onTap: () {
-                                            // 설정 기능
-                                          },
-                                        ),
-                                      ),
-                                    ],
+                                      );
+                                    },
                                   ),
 
                                   const SizedBox(height: 24),
@@ -413,6 +397,7 @@ class _ModernInitialARScreenState extends State<ModernInitialARScreen>
     required VoidCallback onTap,
   }) {
     return Container(
+      width: double.infinity,
       height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),

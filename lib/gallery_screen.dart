@@ -1,4 +1,4 @@
-// lib/gallery_screen.dart - 그리드/리스트 토글 로직 수정됨
+// lib/gallery_screen.dart - 뷰 모드 토글 아이콘 수정됨
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -83,7 +83,7 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
         icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
       ),
       actions: [
-        // 뷰 모드 토글 - ✅ 로직 수정됨
+        // 뷰 모드 토글 - 아이콘 버그 수정됨
         IconButton(
           onPressed: () {
             setState(() {
@@ -91,7 +91,7 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
             });
           },
           icon: Icon(
-            // ✅ 아이콘과 실제 표시 모드를 일치시킴
+            // 현재 상태와 반대 아이콘 표시 (다음에 변경될 모드)
             _isGridView ? Icons.view_list : Icons.grid_view,
             color: Colors.white,
           ),
@@ -156,7 +156,6 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
       opacity: _fadeAnimation,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        // ✅ 조건문 그대로 유지 (버튼 로직만 수정함)
         child: _isGridView ? _buildGridView() : _buildListView(),
       ),
     );
@@ -249,55 +248,102 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
               width: 1,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Stack(
             children: [
-              // 이미지
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: Image.file(
-                    File(item.filePath),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[800],
-                        child: const Icon(
-                          Icons.broken_image,
-                          color: Colors.white54,
-                          size: 40,
-                        ),
-                      );
-                    },
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 이미지
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                      child: Image.file(
+                        File(item.filePath),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[800],
+                            child: const Icon(
+                              Icons.broken_image,
+                              color: Colors.white54,
+                              size: 40,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                ),
+
+                  // 정보 영역
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatDate(item.timestamp),
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
 
-              // 정보 영역
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              // 그리드에 추가된 메뉴 버튼 (우상단)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: Colors.white,
+                      size: 20,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDate(item.timestamp),
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 10,
+                    color: const Color(0xFF2d2d2d),
+                    onSelected: (value) => _handleItemAction(value, item),
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'share',
+                        child: Row(
+                          children: [
+                            Icon(Icons.share, color: Colors.white, size: 20),
+                            SizedBox(width: 12),
+                            Text('공유', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red, size: 20),
+                            SizedBox(width: 12),
+                            Text('삭제', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -360,16 +406,7 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
           color: const Color(0xFF2d2d2d),
           onSelected: (value) => _handleItemAction(value, item),
           itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: Row(
-                children: [
-                  Icon(Icons.visibility, color: Colors.white, size: 20),
-                  SizedBox(width: 12),
-                  Text('보기', style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
+            // "보기" 메뉴 제거됨 (터치하면 어차피 보이니까)
             const PopupMenuItem(
               value: 'share',
               child: Row(
@@ -425,12 +462,9 @@ class _ModernGalleryScreenState extends State<ModernGalleryScreen>
     }
   }
 
-  // 아이템 액션 처리
+  // 아이템 액션 처리 (view 케이스 제거됨)
   void _handleItemAction(String action, GalleryItem item) {
     switch (action) {
-      case 'view':
-        _viewFullscreen(item);
-        break;
       case 'share':
         _shareImage(item);
         break;

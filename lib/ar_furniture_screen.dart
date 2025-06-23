@@ -1,4 +1,4 @@
-// lib/ar_furniture_screen.dart - 플로팅 컨트롤 적용됨
+// lib/ar_furniture_screen.dart - 회전 기능 통합됨
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/datatypes/hittest_result_types.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
@@ -88,7 +88,6 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
     return WillPopScope(
       onWillPop: navigationHandler.handleBackPress,
       child: Scaffold(
-        // appBar 완전 제거
         body: FurnitureSelectorController(
           builder: (selectedFurniture, onFurnitureSelected) {
             this.selectedFurniture = selectedFurniture;
@@ -124,7 +123,9 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
                   if (nodeManager.totalNodes == 0)
                     ARUsageGuide(selectedFurniture: selectedFurniture),
 
-                  // 고정 위치 컨트롤 시스템
+                  // 회전 상태 표시 제거됨
+
+                  // 간단한 회전 기능이 포함된 컨트롤 시스템
                   ARSimpleBottomControls(
                     nodeManager: nodeManager,
                     isARInitialized: isARInitialized,
@@ -137,6 +138,7 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
                       nodeManager.toggleScaleMode();
                       setState(() {});
                     },
+                    onRotateClockwise: () => _rotateActiveNode(), // 단순 회전만
                     onScaleUp: () async {
                       bool success = await nodeManager.scaleUp(arObjectManager, arAnchorManager);
                       if (success && mounted) {
@@ -258,7 +260,7 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
     }
   }
 
-  // 새 노드 추가
+  // 새 노드 추가 (회전 기능 포함)
   Future<void> _addNewNode(ARHitTestResult hitTestResult) async {
     if (_isDisposing) return;
 
@@ -270,13 +272,38 @@ class _SimplifiedARFurnitureScreenState extends State<SimplifiedARFurnitureScree
       bool? didAddNodeToAnchor = await arObjectManager?.addNode(newNode, planeAnchor: newAnchor);
 
       if (didAddNodeToAnchor == true && !_isDisposing) {
-        nodeManager.addNode(newNode, newAnchor);
+        // 현재 선택된 가구의 ID 가져오기
+        String? furnitureId = selectedFurniture?.id;
+
+        // 노드 매니저에 추가 (가구 ID 포함)
+        nodeManager.addNode(newNode, newAnchor, furnitureId: furnitureId);
+
         if (mounted) setState(() {});
       } else {
         if (mounted && !_isDisposing) _showErrorDialog("가구 배치에 실패했습니다.");
       }
     } else {
       if (mounted && !_isDisposing) _showErrorDialog("위치 설정에 실패했습니다.");
+    }
+  }
+
+  // 활성 노드 회전 처리 (시계방향만)
+  Future<void> _rotateActiveNode() async {
+    if (!nodeManager.hasActiveNode || !nodeManager.canActiveNodeRotate) {
+      _showErrorDialog("회전할 수 없는 가구입니다.");
+      return;
+    }
+
+    try {
+      bool success = await nodeManager.rotateActiveNodeClockwise(arObjectManager, arAnchorManager);
+
+      if (success && mounted) {
+        setState(() {});
+      } else {
+        _showErrorDialog("회전에 실패했습니다.");
+      }
+    } catch (e) {
+      _showErrorDialog("회전 중 오류가 발생했습니다.");
     }
   }
 
